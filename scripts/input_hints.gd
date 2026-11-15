@@ -17,9 +17,11 @@ const KEY_BINDINGS: Dictionary = {
 	"move_right": [KEY_RIGHT, KEY_D],
 	"interact": [KEY_E, KEY_ENTER, KEY_KP_ENTER],
 	"cancel": [KEY_ESCAPE, KEY_BACKSPACE],
+	"retry": [KEY_R],
 }
 
 const BUTTON_BINDINGS: Dictionary = {
+	"retry": [JOY_BUTTON_BACK],
 	"move_up": [JOY_BUTTON_DPAD_UP],
 	"move_down": [JOY_BUTTON_DPAD_DOWN],
 	"move_left": [JOY_BUTTON_DPAD_LEFT],
@@ -63,6 +65,10 @@ func interact_label() -> String:
 
 func cancel_label() -> String:
 	return "(B)" if uses_gamepad else "Esc"
+
+
+func retry_label() -> String:
+	return "(Select)" if uses_gamepad else "R"
 
 
 func move_label() -> String:

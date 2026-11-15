@@ -19,6 +19,7 @@ config/icon="res://icon.png"
 [autoload]
 
 InputHints="*res://scripts/input_hints.gd"
+GameState="*res://scripts/game_state.gd"
 
 [display]
 

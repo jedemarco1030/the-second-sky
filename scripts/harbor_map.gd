@@ -35,7 +35,7 @@ const LAYOUT: Array[String] = [
 	"RRRRRRRRR#====#RRRRRRRRRRRRRRRRRRRRRRRRR",
 	"##W##W###L====L##W##W##W##W##W##W##W##W#",
 	"#bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#",
-	"#bbbbbbbbbbbbbbbbbbbbbbbbbccbbbbbbbbbbb#",
+	"#bbTbbbbbbbbbbbbbbbbbbbbbbccbbbbbbbbbbb#",
 	"#bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbNXbbbbbb#",
 	"#bbcbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb#",
 	"rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrppprrrrrrr",

@@ -14,7 +14,11 @@ const FLASH_COLOR: Color = Color("ffd48a")
 func _ready() -> void:
 	InputHints.device_changed.connect(_on_device_changed)
 	_refresh_controls()
-	_play_intro()
+	if GameState.returning_from_seawall:
+		_title.hide()
+		_fade.hide()
+	else:
+		_play_intro()
 
 
 func set_objective(text: String) -> void:

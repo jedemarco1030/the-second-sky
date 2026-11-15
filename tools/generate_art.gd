@@ -30,6 +30,8 @@ func _initialize() -> void:
 	_save(_make_mira(), "res://art/mira.png")
 	_save(_make_nell(), "res://art/nell.png")
 	_save(_make_pip(), "res://art/pip.png")
+	_save(_make_tovan(), "res://art/tovan.png")
+	_save(_make_pump(), "res://art/pump.png")
 	_save(_make_icon(), "res://icon.png")
 	quit()
 
@@ -350,6 +352,83 @@ func _make_pip() -> Image:
 		_px(image, o, 3, 6, AMBER)
 		_px(image, o, 2, 0, TEAL_LIGHT)
 		_px(image, o, 5, 0, TEAL_LIGHT)
+	return image
+
+
+## Tovan: the old seawall keeper. Two idle frames, the second leaning on his pole.
+func _make_tovan() -> Image:
+	var look: Dictionary = {
+		"hair": STONE_LIGHT,
+		"coat": WOOD,
+		"coat_dark": WOOD_DARK,
+		"scarf": TEAL_LIGHT,
+		"pants": STONE_DARK,
+		"boots": INK,
+		"strap": STONE_DARK,
+		"bag": STONE,
+		"headphones": false,
+	}
+	var image: Image = _blank(FRAME.x * 2, FRAME.y)
+	for frame in 2:
+		var origin := Vector2i(frame * FRAME.x, 0)
+		_person(image, origin, VIEW_DOWN, 0, look)
+		# Beard and a boat-hook pole.
+		_rect(image, origin, 6, 7, 4, 2, CREAM)
+		var lean: int = frame
+		_rect(image, origin, 13 + lean, 2, 1, 20, AMBER_DARK)
+		_rect(image, origin, 12 + lean, 2, 2, 1, STONE_LIGHT)
+		_outline(image, Rect2i(origin, FRAME))
+	return image
+
+
+## The harbor pump: a riveted iron tank on a stone plinth. Frame 1 is charging a Surge.
+func _make_pump() -> Image:
+	var w := 56
+	var h := 64
+	var image: Image = _blank(w * 2, h)
+	for frame in 2:
+		var o := Vector2i(frame * w, 0)
+		var charging: bool = frame == 1
+		# Plinth.
+		_rect(image, o, 4, 54, 48, 10, STONE)
+		_rect(image, o, 4, 54, 48, 2, STONE_LIGHT)
+		_rect(image, o, 4, 62, 48, 2, STONE_DARK)
+		# Tank body.
+		_rect(image, o, 10, 14, 36, 40, TEAL_DEEP)
+		_rect(image, o, 10, 14, 4, 40, TEAL)
+		_rect(image, o, 42, 14, 4, 40, INK)
+		for band_y in [20, 36, 50]:
+			_rect(image, o, 10, band_y, 36, 2, STONE_DARK)
+			for rivet_x in range(12, 46, 6):
+				_px(image, o, rivet_x, band_y, STONE_LIGHT)
+		# Dome and stack.
+		_rect(image, o, 14, 8, 28, 6, TEAL)
+		_rect(image, o, 18, 4, 20, 4, TEAL_DEEP)
+		_rect(image, o, 24, 0, 8, 4, STONE_DARK)
+		# Outlet pipes on both sides.
+		_rect(image, o, 0, 40, 10, 6, STONE)
+		_rect(image, o, 0, 40, 10, 1, STONE_LIGHT)
+		_rect(image, o, 46, 28, 10, 6, STONE)
+		_rect(image, o, 46, 28, 10, 1, STONE_LIGHT)
+		# Pressure gauge.
+		var gauge := Vector2(28, 28)
+		for y in range(20, 37):
+			for x in range(20, 37):
+				var d: float = Vector2(x, y).distance_to(gauge)
+				if d <= 7.5:
+					image.set_pixel(o.x + x, o.y + y, CREAM if d < 6.5 else INK)
+		var needle_end: Vector2i = Vector2i(33, 24) if charging else Vector2i(24, 25)
+		_line(image, o + Vector2i(28, 28), o + needle_end, AMBER_DARK, 1)
+		_px(image, o, 28, 28, INK)
+		# Leaking seams; they glow while charging.
+		var seam: Color = AMBER_LIGHT if charging else TEAL_LIGHT
+		_line(image, o + Vector2i(16, 40), o + Vector2i(20, 46), seam, 1)
+		_line(image, o + Vector2i(36, 42), o + Vector2i(40, 48), seam, 1)
+		if charging:
+			_rect(image, o, 2, 36, 3, 3, AMBER_LIGHT)
+			_rect(image, o, 51, 24, 3, 3, AMBER_LIGHT)
+			_rect(image, o, 26, 0, 4, 2, AMBER_LIGHT)
+		_outline(image, Rect2i(o, Vector2i(w, h)))
 	return image
 
 
