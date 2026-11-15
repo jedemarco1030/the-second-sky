@@ -1,0 +1,28 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/harbor.gd" id="1_harbor"]
+[ext_resource type="Script" path="res://scripts/harbor_map.gd" id="2_map"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/nell.tscn" id="4_nell"]
+[ext_resource type="PackedScene" path="res://scenes/pip.tscn" id="5_pip"]
+[ext_resource type="PackedScene" path="res://scenes/dialogue_box.tscn" id="6_dialogue"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="7_hud"]
+
+[node name="Harbor" type="Node2D"]
+script = ExtResource("1_harbor")
+
+[node name="HarborMap" type="Node2D" parent="."]
+script = ExtResource("2_map")
+
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Nell" parent="World" instance=ExtResource("4_nell")]
+
+[node name="Player" parent="World" instance=ExtResource("3_player")]
+
+[node name="Pip" parent="World" instance=ExtResource("5_pip")]
+
+[node name="HUD" parent="." instance=ExtResource("7_hud")]
+
+[node name="DialogueBox" parent="." instance=ExtResource("6_dialogue")]

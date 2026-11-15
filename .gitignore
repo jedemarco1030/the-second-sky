@@ -1,0 +1,32 @@
+# Godot 4 cache, editor metadata, and imported assets
+.godot/
+.import/
+*.translation
+
+# Godot exports
+export.cfg
+export_credentials.cfg
+export_presets.cfg
+builds/
+*.apk
+*.aab
+*.dmg
+*.pck
+*.zip
+
+# Mono / C# (unused, kept for safety)
+.mono/
+data_*/
+mono_crash.*.json
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+*.tmp
+.vscode/
+.idea/
+
+# Leftover tooling from the workspace template (not part of the game)
+node_modules/
+.next/
+.env*.local

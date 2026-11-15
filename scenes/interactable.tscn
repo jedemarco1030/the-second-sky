@@ -1,0 +1,43 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/interactable.gd" id="1_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_reach"]
+radius = 22.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_prompt"]
+content_margin_left = 4.0
+content_margin_top = 1.0
+content_margin_right = 4.0
+content_margin_bottom = 1.0
+bg_color = Color(0.043, 0.102, 0.118, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.91, 0.596, 0.227, 1)
+
+[node name="Interactable" type="Area2D"]
+collision_layer = 0
+monitorable = false
+script = ExtResource("1_script")
+
+[node name="Reach" type="CollisionShape2D" parent="."]
+position = Vector2(0, -4)
+shape = SubResource("CircleShape2D_reach")
+
+[node name="Prompt" type="PanelContainer" parent="."]
+z_index = 20
+offset_left = -32.0
+offset_top = -46.0
+offset_right = 32.0
+offset_bottom = -32.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_prompt")
+
+[node name="Label" type="Label" parent="Prompt"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.831, 0.541, 1)
+theme_override_font_sizes/font_size = 8
+text = "E  Talk"
+horizontal_alignment = 1
