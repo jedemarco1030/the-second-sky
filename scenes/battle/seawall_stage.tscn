@@ -1,0 +1,430 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/battle_stage.gd" id="1_stage"]
+[ext_resource type="Script" path="res://scripts/battle/battle_actor.gd" id="2_actor"]
+[ext_resource type="Script" path="res://scripts/battle/pump_actor.gd" id="3_pump"]
+[ext_resource type="Script" path="res://scripts/battle/pulse.gd" id="4_pulse"]
+[ext_resource type="Shader" path="res://shaders/bay_water.gdshader" id="5_water"]
+[ext_resource type="Texture2D" path="res://art/battle/backdrop.png" id="6_backdrop"]
+[ext_resource type="Texture2D" path="res://art/battle/deck.png" id="7_deck"]
+[ext_resource type="Texture2D" path="res://art/battle/mira.png" id="8_mira"]
+[ext_resource type="Texture2D" path="res://art/battle/tovan.png" id="9_tovan"]
+[ext_resource type="Texture2D" path="res://art/battle/nell.png" id="10_nell"]
+[ext_resource type="Texture2D" path="res://art/battle/pip.png" id="11_pip"]
+[ext_resource type="Texture2D" path="res://art/battle/pump.png" id="12_pump"]
+[ext_resource type="Texture2D" path="res://art/battle/prop_mooring.png" id="13_mooring"]
+[ext_resource type="Texture2D" path="res://art/battle/prop_lantern.png" id="14_lantern"]
+[ext_resource type="Texture2D" path="res://art/battle/prop_barrel.png" id="15_barrel"]
+[ext_resource type="Texture2D" path="res://art/battle/fx_shadow.png" id="16_shadow"]
+[ext_resource type="Texture2D" path="res://art/battle/fx_glow.png" id="17_glow"]
+[ext_resource type="Texture2D" path="res://art/battle/fx_droplet.png" id="18_droplet"]
+
+[sub_resource type="ShaderMaterial" id="water"]
+shader = ExtResource("5_water")
+shader_parameter/horizon = 0.52
+shader_parameter/shore = 0.965
+shader_parameter/texture_size = Vector2(640, 198)
+
+[sub_resource type="CanvasItemMaterial" id="additive"]
+blend_mode = 1
+
+[sub_resource type="Gradient" id="light_falloff"]
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="light_texture"]
+gradient = SubResource("light_falloff")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="Gradient" id="fade_out"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="Gradient" id="steam_fade"]
+colors = PackedColorArray(0.8, 0.84, 0.88, 0.55, 0.8, 0.84, 0.88, 0)
+
+[node name="SeawallStage" type="CanvasLayer"]
+layer = -1
+script = ExtResource("1_stage")
+
+[node name="Moonlight" type="CanvasModulate" parent="."]
+color = Color(0.7, 0.76, 0.95, 1)
+
+[node name="Backdrop" type="Sprite2D" parent="."]
+material = SubResource("water")
+texture = ExtResource("6_backdrop")
+centered = false
+
+[node name="LighthouseLamp" type="Sprite2D" parent="."]
+material = SubResource("additive")
+modulate = Color(1, 0.92, 0.7, 0.8)
+position = Vector2(527, 55)
+scale = Vector2(0.28, 0.28)
+texture = ExtResource("17_glow")
+script = ExtResource("4_pulse")
+speed = 1.1
+low = 0.35
+high = 0.95
+
+[node name="Deck" type="Sprite2D" parent="."]
+position = Vector2(0, 190)
+texture = ExtResource("7_deck")
+centered = false
+
+[node name="MoonRim" type="PointLight2D" parent="."]
+position = Vector2(560, 20)
+color = Color(0.62, 0.74, 1, 1)
+energy = 0.45
+texture = SubResource("light_texture")
+texture_scale = 5.0
+
+[node name="Field" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Mooring" type="Node2D" parent="Field"]
+position = Vector2(54, 246)
+
+[node name="Shadow" type="Sprite2D" parent="Field/Mooring"]
+position = Vector2(0, -1)
+scale = Vector2(1.3, 1)
+texture = ExtResource("16_shadow")
+
+[node name="Sprite" type="Sprite2D" parent="Field/Mooring"]
+position = Vector2(-18, -42)
+texture = ExtResource("13_mooring")
+centered = false
+
+[node name="Barrel" type="Node2D" parent="Field"]
+position = Vector2(88, 260)
+
+[node name="Shadow" type="Sprite2D" parent="Field/Barrel"]
+position = Vector2(0, -1)
+scale = Vector2(1.2, 1)
+texture = ExtResource("16_shadow")
+
+[node name="Sprite" type="Sprite2D" parent="Field/Barrel"]
+position = Vector2(-16, -42)
+texture = ExtResource("15_barrel")
+centered = false
+
+[node name="LanternMid" type="Node2D" parent="Field"]
+position = Vector2(372, 236)
+
+[node name="Shadow" type="Sprite2D" parent="Field/LanternMid"]
+position = Vector2(0, -1)
+scale = Vector2(0.7, 0.8)
+texture = ExtResource("16_shadow")
+
+[node name="Sprite" type="Sprite2D" parent="Field/LanternMid"]
+position = Vector2(-12, -68)
+texture = ExtResource("14_lantern")
+centered = false
+
+[node name="Flame" type="Sprite2D" parent="Field/LanternMid"]
+material = SubResource("additive")
+modulate = Color(1, 0.72, 0.36, 0.9)
+position = Vector2(1, -41)
+scale = Vector2(0.3, 0.3)
+texture = ExtResource("17_glow")
+script = ExtResource("4_pulse")
+speed = 3.0
+low = 0.7
+high = 0.95
+flicker = 0.08
+
+[node name="Light" type="PointLight2D" parent="Field/LanternMid"]
+position = Vector2(1, -41)
+color = Color(1, 0.66, 0.32, 1)
+energy = 1.15
+texture = SubResource("light_texture")
+texture_scale = 2.0
+script = ExtResource("4_pulse")
+speed = 3.0
+low = 0.9
+high = 1.0
+flicker = 0.05
+
+[node name="LanternEast" type="Node2D" parent="Field"]
+position = Vector2(624, 232)
+
+[node name="Shadow" type="Sprite2D" parent="Field/LanternEast"]
+position = Vector2(0, -1)
+scale = Vector2(0.7, 0.8)
+texture = ExtResource("16_shadow")
+
+[node name="Sprite" type="Sprite2D" parent="Field/LanternEast"]
+position = Vector2(-12, -68)
+texture = ExtResource("14_lantern")
+centered = false
+
+[node name="Flame" type="Sprite2D" parent="Field/LanternEast"]
+material = SubResource("additive")
+modulate = Color(1, 0.72, 0.36, 0.9)
+position = Vector2(1, -41)
+scale = Vector2(0.3, 0.3)
+texture = ExtResource("17_glow")
+script = ExtResource("4_pulse")
+speed = 2.6
+low = 0.7
+high = 0.95
+flicker = 0.08
+phase = 1.7
+
+[node name="Light" type="PointLight2D" parent="Field/LanternEast"]
+position = Vector2(1, -41)
+color = Color(1, 0.66, 0.32, 1)
+energy = 0.9
+texture = SubResource("light_texture")
+texture_scale = 1.6
+script = ExtResource("4_pulse")
+speed = 2.6
+low = 0.9
+high = 1.0
+flicker = 0.05
+phase = 1.7
+
+[node name="Mira" type="Node2D" parent="Field"]
+position = Vector2(240, 240)
+script = ExtResource("2_actor")
+unit_id = "mira"
+head_height = 92.0
+
+[node name="Shadow" type="Sprite2D" parent="Field/Mira"]
+modulate = Color(1, 1, 1, 1)
+position = Vector2(0, -1)
+scale = Vector2(1.2, 1)
+texture = ExtResource("16_shadow")
+
+[node name="GuardGlow" type="Sprite2D" parent="Field/Mira"]
+material = SubResource("additive")
+modulate = Color(0.55, 0.75, 1, 0.35)
+position = Vector2(0, -40)
+scale = Vector2(1.1, 1.5)
+texture = ExtResource("17_glow")
+
+[node name="Body" type="Node2D" parent="Field/Mira"]
+
+[node name="Sprite" type="Sprite2D" parent="Field/Mira/Body"]
+position = Vector2(-24, -82)
+texture = ExtResource("8_mira")
+centered = false
+
+[node name="Tovan" type="Node2D" parent="Field"]
+position = Vector2(304, 254)
+script = ExtResource("2_actor")
+unit_id = "tovan"
+head_height = 98.0
+
+[node name="Shadow" type="Sprite2D" parent="Field/Tovan"]
+position = Vector2(0, -1)
+scale = Vector2(1.8, 1.1)
+texture = ExtResource("16_shadow")
+
+[node name="GuardGlow" type="Sprite2D" parent="Field/Tovan"]
+material = SubResource("additive")
+modulate = Color(0.55, 0.75, 1, 0.35)
+position = Vector2(0, -42)
+scale = Vector2(1.4, 1.6)
+texture = ExtResource("17_glow")
+
+[node name="Body" type="Node2D" parent="Field/Tovan"]
+
+[node name="Sprite" type="Sprite2D" parent="Field/Tovan/Body"]
+position = Vector2(-34, -88)
+texture = ExtResource("9_tovan")
+centered = false
+
+[node name="Nell" type="Node2D" parent="Field"]
+position = Vector2(192, 260)
+script = ExtResource("2_actor")
+unit_id = "nell"
+head_height = 98.0
+
+[node name="Shadow" type="Sprite2D" parent="Field/Nell"]
+position = Vector2(0, -1)
+scale = Vector2(1.1, 1)
+texture = ExtResource("16_shadow")
+
+[node name="GuardGlow" type="Sprite2D" parent="Field/Nell"]
+material = SubResource("additive")
+modulate = Color(0.55, 0.75, 1, 0.35)
+position = Vector2(0, -42)
+scale = Vector2(1, 1.6)
+texture = ExtResource("17_glow")
+
+[node name="Body" type="Node2D" parent="Field/Nell"]
+
+[node name="Sprite" type="Sprite2D" parent="Field/Nell/Body"]
+position = Vector2(-18, -88)
+texture = ExtResource("10_nell")
+centered = false
+
+[node name="Pip" type="Node2D" parent="Field"]
+position = Vector2(140, 236)
+script = ExtResource("2_actor")
+unit_id = "pip"
+hover = 2.0
+head_height = 74.0
+
+[node name="Shadow" type="Sprite2D" parent="Field/Pip"]
+modulate = Color(1, 1, 1, 0.6)
+position = Vector2(0, -1)
+scale = Vector2(0.9, 0.7)
+texture = ExtResource("16_shadow")
+
+[node name="GuardGlow" type="Sprite2D" parent="Field/Pip"]
+material = SubResource("additive")
+modulate = Color(0.55, 0.75, 1, 0.35)
+position = Vector2(0, -50)
+scale = Vector2(1, 0.8)
+texture = ExtResource("17_glow")
+
+[node name="Body" type="Node2D" parent="Field/Pip"]
+position = Vector2(0, -38)
+
+[node name="Halo" type="Sprite2D" parent="Field/Pip/Body"]
+material = SubResource("additive")
+modulate = Color(1, 0.94, 0.7, 0.5)
+position = Vector2(4, -12)
+scale = Vector2(0.9, 0.6)
+texture = ExtResource("17_glow")
+script = ExtResource("4_pulse")
+speed = 2.0
+low = 0.3
+high = 0.55
+
+[node name="Sprite" type="Sprite2D" parent="Field/Pip/Body"]
+position = Vector2(-24, -24)
+texture = ExtResource("11_pip")
+centered = false
+
+[node name="Light" type="PointLight2D" parent="Field/Pip/Body"]
+position = Vector2(4, -12)
+color = Color(1, 0.92, 0.66, 1)
+energy = 0.5
+texture = SubResource("light_texture")
+texture_scale = 0.8
+
+[node name="Pump" type="Node2D" parent="Field"]
+position = Vector2(510, 262)
+script = ExtResource("3_pump")
+unit_id = "pump"
+facing = -1.0
+head_height = 176.0
+
+[node name="Shadow" type="Sprite2D" parent="Field/Pump"]
+position = Vector2(0, -2)
+scale = Vector2(5, 1.8)
+texture = ExtResource("16_shadow")
+
+[node name="Body" type="Node2D" parent="Field/Pump"]
+
+[node name="Sprite" type="Sprite2D" parent="Field/Pump/Body"]
+position = Vector2(-89, -170)
+texture = ExtResource("12_pump")
+centered = false
+
+[node name="ChamberGlow" type="Sprite2D" parent="Field/Pump/Body"]
+material = SubResource("additive")
+modulate = Color(0.45, 1, 0.92, 0.35)
+position = Vector2(41, -90)
+scale = Vector2(0.95, 0.95)
+texture = ExtResource("17_glow")
+
+[node name="ChamberLight" type="PointLight2D" parent="Field/Pump/Body"]
+position = Vector2(41, -90)
+color = Color(0.45, 1, 0.92, 1)
+energy = 0.4
+texture = SubResource("light_texture")
+texture_scale = 1.5
+
+[node name="Steam" type="CPUParticles2D" parent="Field/Pump/Body"]
+position = Vector2(65, -154)
+amount = 6
+lifetime = 1.8
+texture = ExtResource("18_droplet")
+direction = Vector2(0.2, -1)
+spread = 12.0
+gravity = Vector2(0, -6)
+initial_velocity_min = 8.0
+initial_velocity_max = 14.0
+scale_amount_min = 1.0
+scale_amount_max = 2.0
+color_ramp = SubResource("steam_fade")
+
+[node name="ChargeSteam" type="CPUParticles2D" parent="Field/Pump/Body"]
+position = Vector2(65, -154)
+emitting = false
+amount = 18
+lifetime = 0.9
+texture = ExtResource("18_droplet")
+direction = Vector2(0.1, -1)
+spread = 25.0
+gravity = Vector2(0, -20)
+initial_velocity_min = 26.0
+initial_velocity_max = 44.0
+scale_amount_min = 1.0
+scale_amount_max = 2.0
+color = Color(1, 0.9, 0.75, 1)
+color_ramp = SubResource("steam_fade")
+
+[node name="Effects" type="Node2D" parent="."]
+
+[node name="Splash" type="CPUParticles2D" parent="Effects"]
+emitting = false
+amount = 26
+lifetime = 0.5
+one_shot = true
+explosiveness = 1.0
+texture = ExtResource("18_droplet")
+direction = Vector2(0, -1)
+spread = 70.0
+gravity = Vector2(0, 320)
+initial_velocity_min = 50.0
+initial_velocity_max = 110.0
+scale_amount_min = 1.0
+scale_amount_max = 2.0
+color = Color(0.72, 0.95, 1, 1)
+color_ramp = SubResource("fade_out")
+
+[node name="Wave" type="CPUParticles2D" parent="Effects"]
+position = Vector2(236, 232)
+emitting = false
+amount = 70
+lifetime = 0.7
+one_shot = true
+explosiveness = 0.85
+texture = ExtResource("18_droplet")
+emission_shape = 3
+emission_rect_extents = Vector2(120, 22)
+direction = Vector2(-1, -0.7)
+spread = 30.0
+gravity = Vector2(0, 260)
+initial_velocity_min = 70.0
+initial_velocity_max = 150.0
+scale_amount_min = 1.0
+scale_amount_max = 3.0
+color = Color(0.62, 0.92, 1, 1)
+color_ramp = SubResource("fade_out")
+
+[node name="Sparks" type="CPUParticles2D" parent="Effects"]
+emitting = false
+amount = 12
+lifetime = 0.35
+one_shot = true
+explosiveness = 1.0
+texture = ExtResource("18_droplet")
+spread = 180.0
+gravity = Vector2(0, 200)
+initial_velocity_min = 40.0
+initial_velocity_max = 90.0
+color = Color(1, 0.82, 0.5, 1)
+color_ramp = SubResource("fade_out")
+
+[node name="Flash" type="ColorRect" parent="."]
+offset_right = 640.0
+offset_bottom = 360.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
