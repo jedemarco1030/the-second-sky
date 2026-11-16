@@ -18,14 +18,17 @@ const MUTED := Color("66787a")
 ## so 12 slots always keep it on screen.
 const TIMELINE_LENGTH: int = 12
 
-const SPRITES: Dictionary = {
-	"mira": {"texture": preload("res://art/mira.png"), "region": Rect2(0, 0, 16, 24), "scale": 2.0, "pos": Vector2(440, 74)},
-	"tovan": {"texture": preload("res://art/tovan.png"), "region": Rect2(0, 0, 16, 24), "scale": 2.0, "pos": Vector2(478, 104)},
-	"nell": {"texture": preload("res://art/nell.png"), "region": Rect2(0, 0, 16, 24), "scale": 2.0, "pos": Vector2(516, 134)},
-	"pip": {"texture": preload("res://art/pip.png"), "region": Rect2(0, 0, 8, 8), "scale": 3.0, "pos": Vector2(564, 178)},
-}
-const PUMP_TEXTURE: Texture2D = preload("res://art/pump.png")
-const PUMP_POS: Vector2 = Vector2(96, 78)
+## Menus sit over the stage scene (scenes/battle/seawall_stage.tscn): the turn
+## order across the top, messages and the pump plate under it, commands and
+## party status along the bottom. The deck and combatants fill the band between.
+const TIMELINE_RECT := Rect2(6, 4, 628, 50)
+const MESSAGE_RECT := Rect2(6, 56, 352, 34)
+const PUMP_PLATE_RECT := Rect2(364, 56, 270, 34)
+const COMMAND_RECT := Rect2(6, 262, 168, 94)
+const STATUS_RECT := Rect2(180, 262, 454, 94)
+const RESULT_RECT := Rect2(150, 100, 340, 130)
+const PUMP_BAR_WIDTH: float = 100.0
+const TAG_WIDTH: float = 90.0
 
 const ATTACK_NAMES: Dictionary = {"mira": "Strike", "tovan": "Hook", "nell": "Wrench", "pip": "Peck"}
 
@@ -53,10 +56,8 @@ var _menu_title: Label
 var _menu_list: VBoxContainer
 var _menu_hint: Label
 var _status_rows: Dictionary = {}
-var _sprite_nodes: Dictionary = {}
 var _tags: Dictionary = {}
-var _pump_sprite: TextureRect
-var _pump_atlas: AtlasTexture
+var _popups: Control
 var _pump_bar: ColorRect
 var _pump_hp: Label
 var _pump_state: Label
@@ -64,6 +65,9 @@ var _result_panel: PanelContainer
 var _result_title: Label
 var _result_body: Label
 var _result_list: VBoxContainer
+
+
+@onready var stage: BattleStage = $SeawallStage
 
 
 func _ready() -> void:
@@ -80,6 +84,10 @@ func start_encounter() -> void:
 	result_kind = ""
 	_result_panel.visible = false
 	highlights = {}
+	breakwater_plan = {}
+	stage.reset()
+	for popup in _popups.get_children():
+		popup.queue_free()
 	_message.text = "The harbor pump roars over the seawall! Watch the turn order for SURGE."
 	_refresh_all()
 	_proceed()
@@ -104,8 +112,17 @@ func _proceed() -> void:
 		await _pause()
 		if generation != _generation:
 			return
+		var kind: String = String(model.forecast(1)[0]["kind"])
+		var jet_id: String = ""
+		if kind == "jet":
+			var target: BattleUnit = model.jet_target()
+			jet_id = target.id if target != null else ""
+		var initiator: String = String(model.pending_breakwater.get("initiator", ""))
+		var before: Dictionary = _hp_snapshot()
 		_message.text = String(model.run_auto_turn()["text"])
 		_refresh_all()
+		_play_auto_turn(kind, actor.id, initiator, jet_id, before)
+		_show_hp_changes(before)
 		await _pause()
 		if generation != _generation:
 			return
@@ -114,13 +131,82 @@ func _proceed() -> void:
 
 func _perform(action: String, target_id: String = "") -> void:
 	var generation: int = _generation
+	var actor_id: String = model.current().id
 	menu_state = "busy"
 	highlights = {}
+	breakwater_plan = {}
+	var before: Dictionary = _hp_snapshot()
 	_message.text = String(model.act(action, target_id)["text"])
 	_refresh_all()
+	_play_command(actor_id, action, target_id)
+	_show_hp_changes(before)
 	await _pause()
 	if generation == _generation:
 		_proceed()
+
+
+# --- Feedback --------------------------------------------------------------
+# Effects start after the model has already resolved the action and the menus
+# are refreshed. They are shorter than `pace` and never awaited, so turn order
+# and menu input are exactly what they would be with no animation at all.
+
+func _play_command(actor_id: String, action: String, target_id: String) -> void:
+	match action:
+		"attack":
+			stage.play_strike(actor_id)
+		"guard":
+			stage.play_guard(actor_id)
+		"mend", "rally":
+			stage.play_support(target_id)
+		"breakwater":
+			stage.play_breakwater_set(actor_id)
+
+
+func _play_auto_turn(kind: String, actor_id: String, initiator: String, jet_id: String, before: Dictionary) -> void:
+	match kind:
+		"jet":
+			if jet_id != "":
+				stage.play_jet(jet_id)
+		"surge":
+			var hit_ids: Array = []
+			for member in model.party():
+				if member.hp < int(before[member.id]):
+					hit_ids.append(member.id)
+			stage.play_surge(hit_ids)
+		"staggered":
+			stage.play_stagger()
+		"breakwater":
+			stage.play_breakwater(initiator, actor_id)
+
+
+func _hp_snapshot() -> Dictionary:
+	var hp: Dictionary = {}
+	for member in model.party():
+		hp[member.id] = member.hp
+	hp["pump"] = model.boss().hp
+	return hp
+
+
+func _show_hp_changes(before: Dictionary) -> void:
+	for unit_id: String in before:
+		var change: int = model.unit(unit_id).hp - int(before[unit_id])
+		if change == 0:
+			continue
+		var text: String = ("+%d" % change) if change > 0 else str(change)
+		_popup(text, stage.head_position(unit_id) + Vector2(0, 14), TEAL_LIGHT if change > 0 else AMBER_LIGHT)
+
+
+func _popup(text: String, at: Vector2, color: Color) -> void:
+	var label := _label(text, 14, color)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.size = Vector2(60, 18)
+	label.position = at - Vector2(30, 0)
+	_popups.add_child(label)
+	var tween := label.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "position:y", label.position.y - 12.0, 0.6).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "modulate:a", 0.0, 0.25).set_delay(0.4)
+	tween.chain().tween_callback(label.queue_free)
 
 
 func _pause() -> void:
@@ -402,25 +488,36 @@ func _timeline_slot(entry: Dictionary) -> PanelContainer:
 
 func _refresh_field() -> void:
 	var current: BattleUnit = null if model.is_over() else model.current()
-	for unit_id: String in _sprite_nodes:
+	# While a Breakwater is being confirmed, both partners' shadows light up and
+	# their tags say when each one's turn is spent, matching the timeline.
+	var preview_ids: Array = []
+	var spend_tags: Dictionary = {}
+	if menu_state == "confirm" and not breakwater_plan.is_empty() and current != null:
+		var partner_id: String = model.breakwater_partner(current.id)
+		var resolve_index: int = int(breakwater_plan["resolve_index"])
+		preview_ids = [current.id, partner_id]
+		spend_tags[current.id] = "SPEND now"
+		spend_tags[partner_id] = ("SPEND T%d" % (resolve_index + 1)) if resolve_index != -1 else "SPEND later"
+	stage.sync(model, preview_ids)
+	for unit_id: String in _tags:
 		var member: BattleUnit = model.unit(unit_id)
-		var sprite: TextureRect = _sprite_nodes[unit_id]
-		sprite.modulate = Color(1, 1, 1, 0.3) if member.is_down() else Color.WHITE
 		var tag: Label = _tags[unit_id]
 		var parts: Array[String] = []
-		if current == member:
+		if spend_tags.has(unit_id):
+			parts.append(String(spend_tags[unit_id]))
+		elif current == member:
 			parts.append("TURN")
 		if member.is_down():
 			parts.append("KO")
 		elif member.guarding:
 			parts.append("GUARD")
-		if not model.pending_breakwater.is_empty() and model.pending_breakwater.values().has(unit_id):
+		if spend_tags.is_empty() and not model.pending_breakwater.is_empty() and model.pending_breakwater.values().has(unit_id):
 			parts.append("BW")
 		tag.text = " ".join(parts)
+		tag.add_theme_color_override("font_color", AMBER_LIGHT if spend_tags.has(unit_id) or current == member else CREAM)
+		tag.position = stage.head_position(unit_id) - Vector2(TAG_WIDTH * 0.5, 0)
 	var pump: BattleUnit = model.boss()
-	_pump_atlas.region = Rect2(56 if model.is_charging() and not pump.is_down() else 0, 0, 56, 64)
-	_pump_sprite.modulate = Color(1, 1, 1, 0.35) if pump.is_down() else Color.WHITE
-	_pump_bar.size.x = 120.0 * float(pump.hp) / pump.max_hp
+	_pump_bar.size.x = PUMP_BAR_WIDTH * float(pump.hp) / pump.max_hp
 	_pump_hp.text = "HARBOR PUMP  %d / %d" % [pump.hp, pump.max_hp]
 	if pump.is_down():
 		_pump_state.text = "Silent"
@@ -488,6 +585,7 @@ func _update_highlights() -> void:
 			highlights[breakwater_plan["resolve_index"]] = "RESOLVE"
 	if previous != highlights:
 		_refresh_timeline()
+		_refresh_field()
 
 
 func _refresh_result_menu() -> void:
@@ -499,73 +597,54 @@ func _refresh_result_menu() -> void:
 	_menu_hint.text = "%s  Select   %s  Retry" % [InputHints.interact_label(), InputHints.retry_label()]
 
 
-func _draw() -> void:
-	var view: Vector2 = size
-	draw_rect(Rect2(Vector2.ZERO, view), INK)
-	draw_rect(Rect2(0, 60, view.x, 110), TEAL_DEEP)
-	for y in range(64, 170, 10):
-		draw_rect(Rect2(0, y, view.x, 1), Color(TEAL, 0.35))
-	# Seawall top and stones.
-	draw_rect(Rect2(0, 170, view.x, 52), Color("3c4b50"))
-	draw_rect(Rect2(0, 170, view.x, 3), Color("66787a"))
-	for row in 3:
-		for col in range(-1, 22):
-			var x: float = col * 32 + (16 if row % 2 == 1 else 0)
-			draw_rect(Rect2(x, 176 + row * 16, 31, 15), Color("2a3539"), false, 1.0)
-	draw_rect(Rect2(0, 222, view.x, 6), TEAL)
-
-
 # --- Building --------------------------------------------------------------
 
 func _build_ui() -> void:
-	var timeline_panel := _panel(Rect2(6, 4, 628, 54), TEAL)
-	var timeline_box := VBoxContainer.new()
-	timeline_box.add_theme_constant_override("separation", 1)
-	timeline_panel.add_child(timeline_box)
+	var timeline_panel := _panel(TIMELINE_RECT, TEAL)
 	_timeline_row = HBoxContainer.new()
 	_timeline_row.add_theme_constant_override("separation", 2)
-	timeline_box.add_child(_timeline_row)
+	timeline_panel.add_child(_timeline_row)
 
-	_pump_atlas = AtlasTexture.new()
-	_pump_atlas.atlas = PUMP_TEXTURE
-	_pump_atlas.region = Rect2(0, 0, 56, 64)
-	_pump_sprite = _sprite(_pump_atlas, PUMP_POS, Vector2(112, 128))
-	var pump_label_y: float = 62.0
-	_pump_hp = _label("", 10, CREAM)
-	_pump_hp.position = Vector2(PUMP_POS.x + 130, pump_label_y + 20)
-	add_child(_pump_hp)
-	var bar_back := ColorRect.new()
-	bar_back.color = INK
-	bar_back.position = Vector2(PUMP_POS.x + 130, pump_label_y + 36)
-	bar_back.size = Vector2(120, 6)
-	add_child(bar_back)
-	_pump_bar = ColorRect.new()
-	_pump_bar.color = AMBER
-	_pump_bar.size = Vector2(120, 6)
-	bar_back.add_child(_pump_bar)
-	_pump_state = _label("", 9, TEAL_LIGHT)
-	_pump_state.position = Vector2(PUMP_POS.x + 130, pump_label_y + 44)
-	add_child(_pump_state)
-
-	for unit_id: String in SPRITES:
-		var spec: Dictionary = SPRITES[unit_id]
-		var atlas := AtlasTexture.new()
-		atlas.atlas = spec["texture"]
-		atlas.region = spec["region"]
-		var region: Rect2 = spec["region"]
-		var sprite_size: Vector2 = region.size * float(spec["scale"])
-		_sprite_nodes[unit_id] = _sprite(atlas, spec["pos"], sprite_size)
-		var tag := _label("", 8, AMBER_LIGHT)
-		tag.position = Vector2(spec["pos"]) + Vector2(sprite_size.x + 3, sprite_size.y * 0.5 - 6)
-		add_child(tag)
-		_tags[unit_id] = tag
-
-	var message_panel := _panel(Rect2(6, 228, 628, 26), TEAL_DEEP)
+	var message_panel := _panel(MESSAGE_RECT, TEAL_DEEP)
 	_message = _label("", 10, CREAM)
 	_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message_panel.add_child(_message)
 
-	var command_panel := _panel(Rect2(6, 258, 180, 98), AMBER)
+	var pump_panel := _panel(PUMP_PLATE_RECT, AMBER)
+	var pump_box := VBoxContainer.new()
+	pump_box.add_theme_constant_override("separation", 1)
+	pump_panel.add_child(pump_box)
+	var pump_row := HBoxContainer.new()
+	pump_row.add_theme_constant_override("separation", 6)
+	pump_box.add_child(pump_row)
+	_pump_hp = _label("", 10, CREAM)
+	_pump_hp.custom_minimum_size = Vector2(150, 0)
+	pump_row.add_child(_pump_hp)
+	var bar_back := ColorRect.new()
+	bar_back.color = TEAL_DEEP
+	bar_back.custom_minimum_size = Vector2(PUMP_BAR_WIDTH, 6)
+	bar_back.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pump_row.add_child(bar_back)
+	_pump_bar = ColorRect.new()
+	_pump_bar.color = AMBER
+	_pump_bar.size = Vector2(PUMP_BAR_WIDTH, 6)
+	bar_back.add_child(_pump_bar)
+	_pump_state = _label("", 9, TEAL_LIGHT)
+	pump_box.add_child(_pump_state)
+
+	# Name tags float over the stage at each combatant's head.
+	for unit_id in BattleModel.PARTY_IDS:
+		var tag := _label("", 9, CREAM)
+		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tag.size = Vector2(TAG_WIDTH, 12)
+		add_child(tag)
+		_tags[unit_id] = tag
+
+	_popups = Control.new()
+	_popups.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_popups)
+
+	var command_panel := _panel(COMMAND_RECT, AMBER)
 	var command_box := VBoxContainer.new()
 	command_box.add_theme_constant_override("separation", 1)
 	command_panel.add_child(command_box)
@@ -578,9 +657,9 @@ func _build_ui() -> void:
 	_menu_hint = _label("", 8, TEAL_LIGHT)
 	command_box.add_child(_menu_hint)
 
-	var side := _panel(Rect2(192, 258, 442, 98), TEAL)
+	var side := _panel(STATUS_RECT, TEAL)
 	var side_box := VBoxContainer.new()
-	side_box.add_theme_constant_override("separation", 2)
+	side_box.add_theme_constant_override("separation", 0)
 	side.add_child(side_box)
 	for member_id in BattleModel.PARTY_IDS:
 		var row := HBoxContainer.new()
@@ -608,7 +687,7 @@ func _build_ui() -> void:
 	_info.custom_minimum_size = Vector2(420, 0)
 	side_box.add_child(_info)
 
-	_result_panel = _panel(Rect2(150, 90, 340, 130), AMBER_LIGHT)
+	_result_panel = _panel(RESULT_RECT, AMBER_LIGHT)
 	var result_box := VBoxContainer.new()
 	result_box.add_theme_constant_override("separation", 6)
 	_result_panel.add_child(result_box)
@@ -651,16 +730,7 @@ func _label(text: String, font_size: int, color: Color) -> Label:
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The outline keeps tags and popups readable over the night scene.
+	label.add_theme_color_override("font_outline_color", INK)
+	label.add_theme_constant_override("outline_size", 3)
 	return label
-
-
-func _sprite(texture: Texture2D, pos: Vector2, sprite_size: Vector2) -> TextureRect:
-	var rect := TextureRect.new()
-	rect.texture = texture
-	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	rect.stretch_mode = TextureRect.STRETCH_SCALE
-	rect.position = pos
-	rect.size = sprite_size
-	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(rect)
-	return rect
